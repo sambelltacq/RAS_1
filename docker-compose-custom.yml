@@ -1,0 +1,189 @@
+services:
+
+  epicsbase:
+    image: epicsbase
+    build:
+      context: ./
+      dockerfile: docker/epicsBase/Dockerfile
+
+
+  node_cache:
+    image: node_cache
+    build:
+      context: ./
+      dockerfile: docker/node_cache/Dockerfile
+
+
+  frontend:
+    build:
+      context: ./
+      dockerfile: docker/frontend/Dockerfile
+      network: host
+    volumes:
+      - ./build/frontend:/build
+    network_mode: host
+    env_file: .env
+    depends_on:
+      - node_cache
+
+
+  pvserver1:
+    build:
+      context: ./
+      dockerfile: docker/pvserver/Dockerfile
+    restart: always
+    network_mode: host
+    tty: true
+    stdin_open: true
+    env_file: .env
+    environment:
+      - ALARM_DATABASE=localhost
+      - ALARM_DATABASE_REPLICA_SET_NAME=devrs
+      - LOADSAVE_DATABASE=localhost
+      - LOADSAVE_DATABASE_REPLICA_SET_NAME=devrs
+      - ADMIN_DATABASE=localhost
+      - ADMIN_DATABASE_REPLICA_SET_NAME=devrs
+      - WATCH_DEBUG_DATABASE=localhost
+      - WATCH_DEBUG_DATABASE_REPLICA_SET_NAME=devrs
+      - DEMO_ARCHIVER=http://localhost:17668
+      - pvServerLogLevel=INFO
+      - pvServerLogFile=/pvServer/log/pvServerLogFile
+      - pvServerPort=9001
+      - pvServerURL=http://127.0.0.1
+    volumes:
+      - ./log/:/pvServer/log
+    depends_on:
+      - epicsbase
+
+
+  pvserver2:
+    build:
+      context: ./
+      dockerfile: docker/pvserver/Dockerfile
+    restart: always
+    network_mode: host
+    tty: true
+    stdin_open: true
+    env_file: .env
+    environment:
+      - ALARM_DATABASE=localhost
+      - ALARM_DATABASE_REPLICA_SET_NAME=devrs
+      - LOADSAVE_DATABASE=localhost
+      - LOADSAVE_DATABASE_REPLICA_SET_NAME=devrs
+      - ADMIN_DATABASE=localhost
+      - ADMIN_DATABASE_REPLICA_SET_NAME=devrs
+      - WATCH_DEBUG_DATABASE=localhost
+      - WATCH_DEBUG_DATABASE_REPLICA_SET_NAME=devrs
+      - DEMO_ARCHIVER=http://localhost:17668
+      - pvServerLogLevel=INFO
+      - pvServerLogFile=/pvServer/log/pvServerLogFile
+      - pvServerPort=9002
+      - pvServerURL=http://127.0.0.1
+    volumes:
+      - ./log/:/pvServer/log
+    depends_on:
+      - epicsbase
+    
+
+  pvserver3:
+    build:
+      context: ./
+      dockerfile: docker/pvserver/Dockerfile
+    restart: always
+    network_mode: host
+    tty: true
+    stdin_open: true
+    env_file: .env
+    environment:
+      - ALARM_DATABASE=localhost
+      - ALARM_DATABASE_REPLICA_SET_NAME=devrs
+      - LOADSAVE_DATABASE=localhost
+      - LOADSAVE_DATABASE_REPLICA_SET_NAME=devrs
+      - ADMIN_DATABASE=localhost
+      - ADMIN_DATABASE_REPLICA_SET_NAME=devrs
+      - WATCH_DEBUG_DATABASE=localhost
+      - WATCH_DEBUG_DATABASE_REPLICA_SET_NAME=devrs
+      - DEMO_ARCHIVER=http://localhost:17668
+      - pvServerLogLevel=INFO
+      - pvServerLogFile=/pvServer/log/pvServerLogFile
+      - pvServerPort=9003
+      - pvServerURL=http://127.0.0.1
+    volumes:
+      - ./log/:/pvServer/log
+    depends_on:
+      - epicsbase
+
+      
+  nginx:
+    image: nginx:1.25.3
+    restart: always
+    network_mode: host
+    depends_on:
+      - pvserver1
+      - pvserver2
+      - pvserver3
+    entrypoint:
+      - /custom/setupNginx.sh
+      - /docker-entrypoint.sh
+    command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - ./nginx/setupNginx.sh:/custom/setupNginx.sh
+      - ./nginx/nginx.production.conf:/custom/nginx.production.conf
+      - ./nginx/nginx.httpredirect.conf:/custom/nginx.httpredirect.conf
+      - ./build/frontend:/var/www/frontend
+      - ./build/styleguide:/var/www/styleguide
+      - ./certificates:/etc/nginx/certificates
+    environment:
+      - SERVER_PORT=${SERVER_PORT-5000}
+    env_file: .env
+
+
+  unsecurestylguidepvserver:
+    build:
+      context: ./
+
+      dockerfile: docker/pvserver/Dockerfile
+    restart: always
+    network_mode: host
+    env_file: .env
+    environment:
+      - ALARM_DATABASE=localhost
+      - ALARM_DATABASE_REPLICA_SET_NAME=devrs
+      - LOADSAVE_DATABASE=localhost
+      - LOADSAVE_DATABASE_REPLICA_SET_NAME=devrs
+      - ADMIN_DATABASE=localhost
+      - ADMIN_DATABASE_REPLICA_SET_NAME=devrs
+      - WATCH_DEBUG_DATABASE=localhost
+      - WATCH_DEBUG_DATABASE_REPLICA_SET_NAME=devrs
+      - DEMO_ARCHIVER=http://localhost:17668
+      - pvServerURL=http://127.0.0.1
+      - pvServerPort=5001
+      - VITE_EnableLogin=false
+    depends_on:
+      - epicsbase
+    
+  
+  demoioc:
+    build:
+      context: ./
+      dockerfile: docker/demoioc/Dockerfile
+    tty: true
+    stdin_open: true
+    restart: always
+    network_mode: host
+    depends_on:
+      - epicsbase
+
+
+  storybook:
+    build:
+      context: ./
+      dockerfile: docker/storybook/Dockerfile
+    env_file: .env
+    environment:
+      - pvServerPort=5001
+      - VITE_EnableLogin=false
+    volumes:
+      - ./build/styleguide:/build/
+    depends_on:
+      - node_cache
