@@ -1,3 +1,36 @@
+Network wide cs-studio equivalent for D-tacq uuts
+
+
+TODO:
+  Routes
+    app root) \
+        list of uuts either generated from multimon or added manually
+        add by hostname or ip
+
+    launcher) \uut\acq2106_000\
+        copy cs-studio launcher
+        show system status
+
+    opis) \uut\acq2106_000\opiname
+        copy cs-studio opis
+        move site selection into opis?
+        multiple open opis
+        priority opis:
+            capture page
+            live plot
+            trans plot
+        clk tree current status svg with buttons below to change
+        plots only chan 1 active must select additional channels
+
+    multimon) \multimon\
+        mulitmon lite
+        add new docker container with slimmed down multimon process
+
+      
+
+
+
+
 Current Release: V5.2.0
 
 [Migrate from V4.0.3 to V5.2.X](docs/migrate-from-V4-to-V5.md)
